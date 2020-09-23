@@ -4,7 +4,7 @@ import (
 	"os/exec"
 )
 
-// System centralizes requirements binary
+// System centralizes required binaries
 type System interface {
 	Adb() string
 	Emulator() string

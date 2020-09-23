@@ -17,22 +17,19 @@ type Emulator interface {
 
 	// Find a given device
 	Find(name string) error
-
-	// GetExec returns the executable file.
-	GetExec() string
 }
 
 type emu struct {
-	bin string
+	bins System
 }
 
-func NewEmulator(s System) Emulator {
-	return emu{bin: s.Emulator()}
+func NewEmulator(bins System) Emulator {
+	return emu{bins}
 }
 
 func (e emu) ListDevices() ([]string, error) {
 	var out []string
-	cmd := exec.Command(e.GetExec(), "-list-avds")
+	cmd := exec.Command(e.bins.Emulator(), "-list-avds")
 	var buf bytes.Buffer
 	cmd.Stdout = &buf
 	if err := cmd.Run(); err != nil {
@@ -58,8 +55,6 @@ func (e emu) Find(name string) error {
 	}
 	return ErrDeviceNotFound
 }
-
-func (e emu) GetExec() string { return e.bin }
 
 func stripSpace(arr []string) []string {
 	var r []string
