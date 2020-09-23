@@ -3,10 +3,20 @@ package main
 import (
 	"flag"
 	"log"
+	"os"
 )
 
 // DefaultDownloadPath is temp folder for persist server file.
 const DefaultDownloadPath = "./frida_push_cache"
+
+var DefaultVersion = "12.11.17"
+
+func init() {
+	// Allow user to overwrite version from env.
+	if v := os.Getenv("FRIDA_VERSION"); v != "" {
+		DefaultVersion = v
+	}
+}
 
 func main() {
 	var (
@@ -16,21 +26,19 @@ func main() {
 	)
 	flag.StringVar(&device, "d", "pixel_2_api_281", "device name")
 	flag.BoolVar(&force, "f", false, "force download")
-	flag.StringVar(&version, "version", "12.11.17", "frida version")
+	flag.StringVar(&version, "version", DefaultVersion, "frida version")
 	flag.Parse()
 
-	emu, err := NewEmulator("")
+	bins, err := LoadBinaries()
 	if err != nil {
-		log.Fatalln("main: init emulator failed:", err)
+		log.Fatalln("failed to load binary:", err)
 	}
+
+	emu := NewEmulator(bins)
+	adb := NewPusher(bins)
 
 	if err := emu.Find(device); err != nil {
 		log.Fatalln("list device failed:", err)
-	}
-
-	adb, err := NewPusher("")
-	if err != nil {
-		log.Fatalln("main: init pusher failed:", err)
 	}
 
 	arch, err := adb.GetArch()

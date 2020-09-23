@@ -7,9 +7,6 @@ import (
 	"strings"
 )
 
-// DefaultEmulatorBin defines a default emulator binary from PATH.
-const DefaultEmulatorBin = "emulator"
-
 var ErrDeviceNotReady = errors.New("device not ready")
 var ErrDeviceNotFound = errors.New("device not found")
 var ErrNoDeviceInstalled = errors.New("no device installed")
@@ -29,16 +26,8 @@ type emu struct {
 	bin string
 }
 
-func NewEmulator(path string) (Emulator, error) {
-	bin := DefaultEmulatorBin
-	if path != "" {
-		bin = path
-	}
-	p, err := exec.LookPath(bin)
-	if err != nil {
-		return nil, err
-	}
-	return emu{bin: p}, nil
+func NewEmulator(s System) Emulator {
+	return emu{bin: s.Emulator()}
 }
 
 func (e emu) ListDevices() ([]string, error) {

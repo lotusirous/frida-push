@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path"
 	"strings"
-	"time"
 )
 
 const DefaultRemotePath = "/data/local/tmp/frida-server"
@@ -26,20 +25,11 @@ type Pusher interface {
 }
 
 type adb struct {
-	bin        string
-	httpClient *http.Client
+	bins System
 }
 
-func NewPusher(path string) (Pusher, error) {
-	bin := "adb"
-	if path != "" {
-		bin = path
-	}
-	p, err := exec.LookPath(bin)
-	if err != nil {
-		return nil, err
-	}
-	return adb{bin: p, httpClient: &http.Client{Timeout: 10 * time.Second}}, nil
+func NewPusher(bins System) Pusher {
+	return adb{bins}
 }
 
 func (a adb) GetArch() (string, error) {
@@ -61,15 +51,12 @@ func (a adb) DownloadAndExtract(dir, version, arch string) (string, error) {
 	if err := os.RemoveAll(dir); err != nil {
 		return "", err
 	}
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
+	if _, err := os.Stat(dir); os.IsNotExist(err) { // mkdir if not exists
 		_ = os.Mkdir(dir, os.ModePerm)
 	}
 	fname := fmt.Sprintf("frida-server-%s-android-%s.xz", version, arch)
-	req, err := http.NewRequest("GET", a.downloadURL(version, fname), nil)
-	if err != nil {
-		return "", err
-	}
-	resp, err := a.httpClient.Do(req)
+	url := a.downloadURL(version, fname)
+	resp, err := http.DefaultClient.Get(url)
 	if err != nil {
 		return "", err
 	}
@@ -97,7 +84,7 @@ func (a adb) DownloadAndExtract(dir, version, arch string) (string, error) {
 }
 
 func (a adb) UnXZ(path string) (string, error) {
-	cmd := exec.Command("unxz", path)
+	cmd := exec.Command(a.bins.UnXZ(), path)
 	err := cmd.Run()
 	if err != nil {
 		return "", err
