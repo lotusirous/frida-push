@@ -1,0 +1,20 @@
+project_name: hugo
+env:
+  - GO111MODULE=on
+before:
+  hooks:
+    - go mod download
+builds:
+  - binary: frida-push
+    id: frida-push
+    env:
+      - CGO_ENABLED=
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - 386
+      - arm
+      - arm64
