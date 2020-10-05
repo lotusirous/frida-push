@@ -1,32 +1,51 @@
 package main
 
 import (
+	"bytes"
+	"errors"
 	"flag"
 	"log"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"strings"
 )
 
-// DefaultDownloadPath is temp folder for persist server file.
-const DefaultDownloadPath = "./frida_push_cache"
+var versionRegex = regexp.MustCompile(`^([0-9]+)\.([0-9]+)\.([0-9]+)$`)
 
-var DefaultVersion = "12.11.17"
+var ErrFridaNotFound = errors.New("frida not found in your python environment")
 
-func init() {
-	// Allow user to overwrite version from env.
-	if v := os.Getenv("FRIDA_VERSION"); v != "" {
-		DefaultVersion = v
+func cacheDir() string {
+	const base = "frida-push"
+	if xdg := os.Getenv("XDG_CACHE_HOME"); xdg != "" {
+		return filepath.Join(xdg, base)
 	}
+	return filepath.Join(os.Getenv("HOME"), ".cache", base)
+}
+
+func fidraVersion() (string, error) {
+	var buf bytes.Buffer
+	cmd := exec.Command("python", "-c", "import frida; print(frida.__version__)")
+	cmd.Stdout = &buf
+	err := cmd.Run()
+	if err != nil {
+		return "", err
+	}
+	v := strings.Trim(buf.String(), "\n")
+	if matched := versionRegex.MatchString(v); !matched {
+		return "", ErrFridaNotFound
+	}
+	return v, nil
 }
 
 func main() {
 	var (
-		device  string
-		version string
-		force   bool
+		device string
+		force  bool
 	)
 	flag.StringVar(&device, "d", "pixel_2_api_281", "device name")
 	flag.BoolVar(&force, "f", false, "force download")
-	flag.StringVar(&version, "version", DefaultVersion, "frida version")
 	flag.Parse()
 
 	bins, err := LoadBinaries()
@@ -46,12 +65,15 @@ func main() {
 		log.Fatalln("main: get arch failed:", err)
 	}
 
-	log.Printf("use frida-server: %s-%s\n", arch, version)
-
-	// Download
-	outfile, err := adb.DownloadAndExtract(DefaultDownloadPath, version, arch)
+	version, err := fidraVersion()
 	if err != nil {
-		log.Println("download failed:", err)
+		log.Fatalln("main: find version failed:", err)
+	}
+	log.Printf("download version: frida-server-%s-android-%s.xz\n", version, arch)
+
+	outfile, err := adb.DownloadAndExtract(cacheDir(), version, arch)
+	if err != nil {
+		log.Println("main: download failed", err)
 	}
 
 	// push to device

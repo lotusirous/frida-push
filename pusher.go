@@ -95,9 +95,7 @@ func (a adb) UnXZ(path string) (string, error) {
 
 func (a adb) Push(binfile string) error {
 	// prepare frida-server file
-
 	var out bytes.Buffer
-	fmt.Println(binfile, DefaultRemotePath)
 	cmd := exec.Command("adb", "push", binfile, DefaultRemotePath)
 	cmd.Stdout = &out
 	err := cmd.Run()
