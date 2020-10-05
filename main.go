@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -42,10 +43,8 @@ func fidraVersion() (string, error) {
 func main() {
 	var (
 		device string
-		force  bool
 	)
 	flag.StringVar(&device, "d", "pixel_2_api_281", "device name")
-	flag.BoolVar(&force, "f", false, "force download")
 	flag.Parse()
 
 	bins, err := LoadBinaries()
@@ -69,17 +68,19 @@ func main() {
 	if err != nil {
 		log.Fatalln("main: find version failed:", err)
 	}
-	log.Printf("download version: frida-server-%s-android-%s.xz\n", version, arch)
 
-	outfile, err := adb.DownloadAndExtract(cacheDir(), version, arch)
+	fridaFile := fmt.Sprintf("frida-server-%s-android-%s.xz", version, arch)
+	log.Printf("download version: %s\n", fridaFile)
+
+	serverBin, err := adb.Download(cacheDir(), version, fridaFile)
 	if err != nil {
 		log.Println("main: download failed", err)
 	}
 
 	// push to device
-	if err := adb.Push(outfile); err != nil {
+	if err := adb.Push(serverBin); err != nil {
 		log.Fatalln("push to device failed:", err)
 	}
-	log.Println("FINSHED", outfile)
+	log.Println("DONE: ", serverBin)
 
 }

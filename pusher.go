@@ -21,7 +21,7 @@ type Pusher interface {
 	GetArch() (string, error)
 
 	// Download fetchs the binary and persists to given directory.
-	DownloadAndExtract(store, version, arch string) (string, error)
+	Download(store, version, name string) (string, error)
 }
 
 type adb struct {
@@ -44,18 +44,19 @@ func (a adb) GetArch() (string, error) {
 }
 
 func (a adb) downloadURL(version, fname string) string {
+	// https://github.com/frida/frida/releases/download/12.11.17/frida-server-12.11.17-android-x86_64.xz
 	return fmt.Sprintf("https://github.com/frida/frida/releases/download/%s/%s", version, fname)
 }
 
-func (a adb) DownloadAndExtract(dir, version, arch string) (string, error) {
-	if err := os.RemoveAll(dir); err != nil {
+func (a adb) Download(dest, version, name string) (string, error) {
+	if err := os.RemoveAll(dest); err != nil {
 		return "", err
 	}
-	if _, err := os.Stat(dir); os.IsNotExist(err) { // mkdir if not exists
-		_ = os.Mkdir(dir, os.ModePerm)
+	if _, err := os.Stat(dest); os.IsNotExist(err) { // mkdir if not exists
+		_ = os.Mkdir(dest, os.ModePerm)
 	}
-	fname := fmt.Sprintf("frida-server-%s-android-%s.xz", version, arch)
-	url := a.downloadURL(version, fname)
+
+	url := a.downloadURL(version, name)
 	resp, err := http.DefaultClient.Get(url)
 	if err != nil {
 		return "", err
@@ -63,7 +64,7 @@ func (a adb) DownloadAndExtract(dir, version, arch string) (string, error) {
 	defer resp.Body.Close()
 
 	// Create the file
-	outfile := path.Join(dir, fname)
+	outfile := path.Join(dest, name)
 	out, err := os.Create(outfile)
 	if err != nil {
 		return "", err
