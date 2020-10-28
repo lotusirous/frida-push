@@ -10,20 +10,18 @@ import (
 )
 
 func DownloadAndExtract(tools SystemTool, cache, version, arch string) (string, error) {
-	// https://github.com/frida/frida/releases/download/12.11.17/frida-server-12.11.17-android-x86_64.xz
-	serverBin := fmt.Sprintf("frida-server-%s-android-%s", version, arch)
-	absServerBin := path.Join(cache, serverBin)
-	serverZipFile := serverBin + ".xz"
-	targetUrl := fmt.Sprintf("https://github.com/frida/frida/releases/download/%s/%s", version, serverZipFile)
+	svr := fmt.Sprintf("frida-server-%s-android-%s", version, arch)
+	serverPath := path.Join(cache, svr)
+	xzPath := serverPath + ".xz"
 
-	// if exist
-	if _, err := os.Stat(absServerBin); err == nil {
-		return absServerBin, nil
+	// https://github.com/frida/frida/releases/download/12.11.17/frida-server-12.11.17-android-x86_64.xz
+	targetUrl := fmt.Sprintf("https://github.com/frida/frida/releases/download/%s/%s.xz", version, svr)
+
+	if _, err := os.Stat(serverPath); err == nil {
+		return serverPath, nil
 	}
 
-	// prepare temp dir to extract file
-	outfile := path.Join(cache, serverZipFile)
-	wc, err := prepareDirectory(outfile)
+	wc, err := prepareDirectory(xzPath)
 	if err != nil {
 		return "", err
 	}
@@ -33,13 +31,13 @@ func DownloadAndExtract(tools SystemTool, cache, version, arch string) (string, 
 		return "", err
 	}
 
-	// unzip file
-	defer os.Remove(outfile)
-	if out, err := exec.Command(tools.UnXZ(), outfile).CombinedOutput(); err != nil {
+	// extract file
+	defer os.Remove(xzPath)
+	if out, err := exec.Command(tools.UnXZ(), xzPath).CombinedOutput(); err != nil {
 		return "", fmt.Errorf("extract: %q %w", out, err)
 	}
 
-	return absServerBin, nil
+	return serverPath, nil
 }
 
 func prepareDirectory(dst string) (io.WriteCloser, error) {
