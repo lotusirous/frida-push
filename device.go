@@ -1,16 +1,11 @@
 package main
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
 	"time"
 )
-
-var ErrDeviceNotFound = errors.New("device: not found")
-var ErrNoDeviceInstalled = errors.New("device: no device installed")
 
 type emu struct{ bins SystemTool }
 
@@ -22,44 +17,6 @@ func (e emu) GetArch() (string, error) {
 		return "", fmt.Errorf("device: exec query arch failed: %q %w", out, err)
 	}
 	return strings.TrimSuffix(string(out), "\n"), nil
-}
-
-func stripSpace(arr []string) []string {
-	var r []string
-	for _, e := range arr {
-		if e != "" {
-			r = append(r, e)
-		}
-	}
-	return r
-}
-
-func (e emu) List() ([]string, error) {
-	var list []string
-	out, err := exec.Command(e.bins.Emulator(), "-list-avds").CombinedOutput()
-	if err != nil {
-		return list, fmt.Errorf("device: exec -list-avds failed: %w", err)
-	}
-	out = bytes.TrimRight(out, "\n")
-	list = strings.Split(string(out), "\n")
-	return stripSpace(list), nil
-}
-
-func (e emu) Find(name string) error {
-	dvs, err := e.List()
-	if err != nil {
-		return err
-	}
-
-	if len(dvs) == 0 {
-		return ErrNoDeviceInstalled
-	}
-	for _, n := range dvs {
-		if n == name {
-			return nil
-		}
-	}
-	return ErrDeviceNotFound
 }
 
 func (e emu) SwithToRoot() error {

@@ -18,10 +18,8 @@ func cacheDir() string {
 
 func main() {
 	var (
-		device     string
 		remotePath string
 	)
-	flag.StringVar(&device, "d", "", "device name")
 	flag.StringVar(&remotePath, "r", "/data/local/tmp/frida-server", "default remote path")
 	flag.Parse()
 
@@ -31,15 +29,6 @@ func main() {
 	}
 
 	dev := NewEmulator(tools)
-
-	// load connected device
-	if device != "" {
-		device = "emulator-5554"
-	}
-
-	// if err := dev.Find(device); err != nil {
-	// 	log.Fatalln("main: find device failed:", err)
-	// }
 
 	arch, err := dev.GetArch()
 	if err != nil {

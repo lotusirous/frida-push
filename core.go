@@ -4,12 +4,6 @@ type (
 	Devicer interface {
 		SwithToRoot() error
 
-		// Find a given device
-		Find(name string) error
-
-		// ListDevices shows all devices in system.
-		List() ([]string, error)
-
 		// Push a given binary to emulator server
 		PushAndExecute(src, dst string) error
 
