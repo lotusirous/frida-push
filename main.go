@@ -1,21 +1,12 @@
 package main
 
 import (
-	"bytes"
-	"errors"
 	"flag"
-	"fmt"
-	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"regexp"
-	"strings"
+
+	"github.com/lotusirous/frida-push/log"
 )
-
-var versionRegex = regexp.MustCompile(`^([0-9]+)\.([0-9]+)\.([0-9]+)$`)
-
-var ErrFridaNotFound = errors.New("frida not found in your python environment")
 
 func cacheDir() string {
 	const base = "frida-push"
@@ -25,62 +16,59 @@ func cacheDir() string {
 	return filepath.Join(os.Getenv("HOME"), ".cache", base)
 }
 
-func fidraVersion() (string, error) {
-	var buf bytes.Buffer
-	cmd := exec.Command("python", "-c", "import frida; print(frida.__version__)")
-	cmd.Stdout = &buf
-	err := cmd.Run()
-	if err != nil {
-		return "", err
-	}
-	v := strings.Trim(buf.String(), "\n")
-	if matched := versionRegex.MatchString(v); !matched {
-		return "", ErrFridaNotFound
-	}
-	return v, nil
-}
-
 func main() {
 	var (
-		device string
+		device     string
+		remotePath string
 	)
-	flag.StringVar(&device, "d", "pixel_2_api_281", "device name")
+	flag.StringVar(&device, "d", "", "device name")
+	flag.StringVar(&remotePath, "r", "/data/local/tmp/frida-server", "default remote path")
 	flag.Parse()
 
-	bins, err := LoadBinaries()
+	tools, err := LoadTools()
 	if err != nil {
-		log.Fatalln("failed to load binary:", err)
+		log.Fatalln("main: load tools:", err)
 	}
 
-	emu := NewEmulator(bins)
-	adb := NewPusher(bins)
+	dev := NewEmulator(tools)
 
-	if err := emu.Find(device); err != nil {
-		log.Fatalln("list device failed:", err)
+	// load connected device
+	if device != "" {
+		device = "emulator-5554"
 	}
 
-	arch, err := adb.GetArch()
+	// if err := dev.Find(device); err != nil {
+	// 	log.Fatalln("main: find device failed:", err)
+	// }
+
+	arch, err := dev.GetArch()
 	if err != nil {
-		log.Fatalln("main: get arch failed:", err)
+		log.Fatalln("main: get arch:", err)
 	}
 
-	version, err := fidraVersion()
+	version, err := tools.GetFridaToolVersion()
 	if err != nil {
-		log.Fatalln("main: find version failed:", err)
+		log.Fatalln("main: find frida-tools version:", err)
 	}
+	log.Infoln("Found frida-tools version:", version)
 
-	fridaFile := fmt.Sprintf("frida-server-%s-android-%s.xz", version, arch)
-	log.Printf("download version: %s\n", fridaFile)
-
-	serverBin, err := adb.Download(cacheDir(), version, fridaFile)
+	log.Infoln("Download and extract file to:", cacheDir())
+	serverBin, err := DownloadAndExtract(tools, cacheDir(), version, arch)
 	if err != nil {
-		log.Println("main: download failed", err)
+		log.Fatalln("main: download and extract:", err)
 	}
+	log.Infoln("Downloaded path:", serverBin)
 
+	log.Infoln("Switch to root")
+	if err := dev.SwithToRoot(); err != nil {
+		log.Fatalln("main: switch to root:", err)
+	}
+	log.Infoln("Push and execute")
 	// push to device
-	if err := adb.Push(serverBin); err != nil {
-		log.Fatalln("push to device failed:", err)
+	if err := dev.PushAndExecute(serverBin, remotePath); err != nil {
+		log.Fatalln("main: push and execute:", err)
 	}
-	log.Println("DONE: ", serverBin)
+
+	log.Infoln("DONE")
 
 }
