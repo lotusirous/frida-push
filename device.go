@@ -1,9 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os/exec"
-	"strings"
 	"time"
 )
 
@@ -16,7 +16,8 @@ func (e emu) GetArch() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("device: exec query arch failed: %q %w", out, err)
 	}
-	return strings.TrimSuffix(string(out), "\n"), nil
+	out = bytes.TrimRight(out, "\n")
+	return string(out), nil
 }
 
 func (e emu) SwithToRoot() error {

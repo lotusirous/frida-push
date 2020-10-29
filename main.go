@@ -52,8 +52,8 @@ func main() {
 	if err := dev.SwithToRoot(); err != nil {
 		log.Fatalln("main: switch to root:", err)
 	}
+
 	log.Infoln("Push and execute")
-	// push to device
 	if err := dev.PushAndExecute(serverBin, remotePath); err != nil {
 		log.Fatalln("main: push and execute:", err)
 	}

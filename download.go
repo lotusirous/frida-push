@@ -21,7 +21,7 @@ func DownloadAndExtract(tools SystemTool, cache, version, arch string) (string, 
 		return serverPath, nil
 	}
 
-	wc, err := prepareDirectory(xzPath)
+	wc, err := prepareDir(xzPath)
 	if err != nil {
 		return "", err
 	}
@@ -40,10 +40,10 @@ func DownloadAndExtract(tools SystemTool, cache, version, arch string) (string, 
 	return serverPath, nil
 }
 
-func prepareDirectory(dst string) (io.WriteCloser, error) {
-	dir := path.Dir(dst)
-	if _, err := os.Stat(dir); os.IsNotExist(err) { // mkdir if not exists
-		_ = os.Mkdir(dir, os.ModePerm)
+func prepareDir(dst string) (io.WriteCloser, error) {
+	parent := path.Dir(dst)                            // get parent of the binary file
+	if _, err := os.Stat(parent); os.IsNotExist(err) { // create if not exists
+		_ = os.Mkdir(parent, os.ModePerm)
 	}
 	f, err := os.Create(dst)
 	if err != nil {
