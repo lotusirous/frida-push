@@ -52,14 +52,17 @@ func (s emuSys) UnXZ() string     { return s.unxz }
 func (s emuSys) FridaPS() string  { return s.fridaPS }
 
 func (s emuSys) GetFridaToolVersion() (string, error) {
-	v, err := exec.Command("python", "-c", "import frida; print(frida.__version__)").CombinedOutput()
+	out, err := exec.Command("python", "-c", "import frida; print(frida.__version__)").CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("tools: query frida client failed: %q %w", v, err)
+		return "", fmt.Errorf("tools: query frida client failed: %q %w", out, err)
 	}
-	out := bytes.TrimRight(v, "\n")
-	version := string(out)
+	return parseVersion(out)
+}
 
-	if matched := versionRegex.MatchString(version); !matched {
+func parseVersion(b []byte) (string, error) {
+	out := bytes.TrimRight(b, "\n")
+	version := string(out)
+	if ok := versionRegex.MatchString(version); !ok {
 		return "", ErrFridaNotFound
 	}
 	return string(out), nil
